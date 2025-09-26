@@ -35,6 +35,7 @@ where
             client_guid,
             request_timestamp: timestamp(),
             use_encryption: false,
+            password: [0x74,0x65,0x73,0x74] // "test", used by the roblox client for some reason (might be my setup)
         });
         OnlineHandler {
             frame: self,

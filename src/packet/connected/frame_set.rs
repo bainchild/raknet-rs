@@ -2,13 +2,13 @@ use std::net::SocketAddr;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
+use crate::Reliability;
 use crate::errors::CodecError;
 use crate::packet::{
-    read_buf, PackType, SocketAddrRead, SocketAddrWrite, FRAGMENT_PART_SIZE, NEEDS_B_AND_AS_FLAG,
-    PARTED_FLAG,
+    FRAGMENT_PART_SIZE, NEEDS_B_AND_AS_FLAG, PARTED_FLAG, PackType, SocketAddrRead,
+    SocketAddrWrite, read_buf,
 };
-use crate::utils::{u24, BufExt, BufMutExt};
-use crate::Reliability;
+use crate::utils::{BufExt, BufMutExt, u24};
 
 pub(crate) type Frames = Vec<Frame>;
 
@@ -297,6 +297,7 @@ pub(crate) enum FrameBody {
         client_guid: u64,
         request_timestamp: i64,
         use_encryption: bool,
+        password: [u8; 4],
     },
     ConnectionRequestAccepted {
         client_address: std::net::SocketAddr,
@@ -372,12 +373,13 @@ impl FrameBody {
                     server_timestamp: buf.get_i64(), // 8
                 }
             })),
-            PackType::ConnectionRequest => Ok(read_buf!(buf, 18, {
+            PackType::ConnectionRequest => Ok(read_buf!(buf, 22, {
                 buf.advance(1); // 1
                 Self::ConnectionRequest {
                     client_guid: buf.get_u64(),        // 8
                     request_timestamp: buf.get_i64(),  // 8
                     use_encryption: buf.get_u8() != 0, // 1
+                    password: buf.copy_to_bytes(4).chunk().try_into().unwrap(),
                 }
             })),
             PackType::ConnectionRequestAccepted => Ok(Self::ConnectionRequestAccepted {
@@ -425,11 +427,16 @@ impl FrameBody {
                 client_guid,
                 request_timestamp,
                 use_encryption,
+                password,
             } => {
                 buf.put_u8(PackType::ConnectionRequest as u8);
                 buf.put_u64(client_guid);
                 buf.put_i64(request_timestamp);
                 buf.put_u8(u8::from(use_encryption));
+                buf.put_u8(password[0]);
+                buf.put_u8(password[1]);
+                buf.put_u8(password[2]);
+                buf.put_u8(password[3]);
             }
             FrameBody::ConnectionRequestAccepted {
                 client_address,

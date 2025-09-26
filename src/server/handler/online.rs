@@ -43,6 +43,7 @@ pin_project! {
     }
 }
 
+#[derive(Debug)]
 enum HandshakeState {
     WaitConnRequest,
     WaitNewIncomingConn,
@@ -66,9 +67,11 @@ where
                     if let FrameBody::ConnectionRequest {
                         request_timestamp,
                         use_encryption,
+                        password,
                         ..
                     } = body
                     {
+                        trace!("received password {:X?} ({:?})",password,use_encryption);
                         if use_encryption {
                             this.link.send_unconnected(
                                 unconnected::Packet::ConnectionRequestFailed {
@@ -95,6 +98,7 @@ where
                                 accepted_timestamp: timestamp(),
                             });
                         *this.state = HandshakeState::WaitNewIncomingConn;
+                        trace!("new state {:?}",this.state);
                         continue;
                     }
                     debug!("[{}] ignore packet {body:?} on WaitConnRequest", this.role);

@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use crate::errors::CodecError;
-use crate::packet::{read_buf, MagicRead, MagicWrite, PackType, SocketAddrRead, SocketAddrWrite};
+use crate::packet::{read_buf, MagicRead, MagicWrite, PackType, SocketAddrRead, SocketAddrWrite, PeerCapabilitiesRead, PeerCapabilitiesWrite, PeerCapabilities};
 
 /// Request sent before establishing a connection
 #[derive(Debug, Clone)]
@@ -36,6 +36,8 @@ pub(crate) enum Packet {
         server_address: SocketAddr,
         mtu: u16,
         client_guid: u64,
+        client_version: u32,
+        client_capabilities: PeerCapabilities
     },
     OpenConnectionReply2 {
         magic: (),
@@ -43,6 +45,7 @@ pub(crate) enum Packet {
         client_address: SocketAddr,
         mtu: u16,
         encryption_enabled: bool,
+        server_capabilities: PeerCapabilities
     },
     IncompatibleProtocol {
         server_protocol: u8,
@@ -126,6 +129,8 @@ impl Packet {
             server_address: buf.get_socket_addr()?,
             mtu: read_buf!(buf, 2, buf.get_u16()),
             client_guid: read_buf!(buf, 8, buf.get_u64()),
+            client_version: read_buf!(buf, 4, buf.get_u32()),
+            client_capabilities: buf.get_peer_capabilities()?
         })
     }
 
@@ -136,6 +141,7 @@ impl Packet {
             client_address: buf.get_socket_addr()?,
             mtu: read_buf!(buf, 2, buf.get_u16()),
             encryption_enabled: read_buf!(buf, 1, buf.get_u8() != 0),
+            server_capabilities: buf.get_peer_capabilities()?
         })
     }
 
@@ -211,11 +217,15 @@ impl Packet {
                 server_address,
                 mtu,
                 client_guid,
+                client_version,
+                client_capabilities
             } => {
                 buf.put_magic();
                 buf.put_socket_addr(server_address);
                 buf.put_u16(mtu);
                 buf.put_u64(client_guid);
+                buf.put_u32(client_version);
+                buf.put_peer_capabilities(client_capabilities);
             }
             Packet::OpenConnectionReply2 {
                 magic: _magic,
@@ -223,12 +233,14 @@ impl Packet {
                 client_address,
                 mtu,
                 encryption_enabled: _encryption_enabled,
+                server_capabilities
             } => {
                 buf.put_magic();
                 buf.put_u64(server_guid);
                 buf.put_socket_addr(client_address);
                 buf.put_u16(mtu);
                 buf.put_u8(0);
+                buf.put_peer_capabilities(server_capabilities);
             }
             Packet::IncompatibleProtocol {
                 server_protocol,

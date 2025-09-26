@@ -275,6 +275,7 @@ where
                         client_address: addr,
                         mtu,
                         encryption_enabled: false, // must set to false
+                        server_capabilities: 0
                     }
                 }
                 _ => {

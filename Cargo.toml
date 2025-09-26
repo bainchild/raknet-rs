@@ -64,7 +64,7 @@ workspace = true
 members = ["xdp/ebpf", "xdp/raknet-xdp"]
 
 [workspace.package]
-edition = "2021"
+edition = "2024"
 license = "Apache-2.0"
 authors = ["iGxnon"]
 homepage = "https://github.com/MemoriesOfTime/raknet-rs"

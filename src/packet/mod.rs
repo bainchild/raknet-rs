@@ -19,13 +19,13 @@ macro_rules! read_buf {
 
 pub(in crate::packet) use read_buf;
 
-const VALID_FLAG: u8 = 0b1000_0000; // A valid user frame
-const ACK_FLAG: u8 = 0b1100_0000; // A valid user frame which contains an ACK frame
-const NACK_FLAG: u8 = 0b1010_0000; // A valid user frame which contains a NACK frame
+pub const VALID_FLAG: u8 = 0b1000_0000; // A valid user frame
+pub const ACK_FLAG: u8 = 0b1100_0000; // A valid user frame which contains an ACK frame
+pub const NACK_FLAG: u8 = 0b1010_0000; // A valid user frame which contains a NACK frame
 
-const PARTED_FLAG: u8 = 0b0001_0000;
-const CONTINUOUS_SEND_FLAG: u8 = 0b0000_1000;
-const NEEDS_B_AND_AS_FLAG: u8 = 0b0000_0100;
+pub const PARTED_FLAG: u8 = 0b0001_0000;
+pub const CONTINUOUS_SEND_FLAG: u8 = 0b0000_1000;
+pub const NEEDS_B_AND_AS_FLAG: u8 = 0b0000_0100;
 
 // 1B ID + 3B seq num
 pub(crate) const FRAME_SET_HEADER_SIZE: usize = 4;
@@ -270,6 +270,27 @@ pub(crate) trait SocketAddrRead {
 pub(crate) trait SocketAddrWrite {
     fn put_socket_addr(&mut self, addr: SocketAddr);
 }
+pub(crate) type PeerCapabilities = u64;
+
+pub(crate) trait PeerCapabilitiesRead {
+    fn get_peer_capabilities(&mut self) -> Result<PeerCapabilities, CodecError>;
+}
+
+pub(crate) trait PeerCapabilitiesWrite {
+    fn put_peer_capabilities(&mut self, caps: PeerCapabilities);
+}
+
+impl<B: Buf> PeerCapabilitiesRead for B {
+    fn get_peer_capabilities(&mut self) -> Result<PeerCapabilities, CodecError> {
+        read_buf!(self, 8, Ok(self.get_u64()))
+    }
+}
+
+impl<B: BufMut> PeerCapabilitiesWrite for B {
+    fn put_peer_capabilities(&mut self, caps: PeerCapabilities) {
+        self.put_u64(caps);
+    }
+}
 
 impl<B: Buf> SocketAddrRead for B {
     fn get_socket_addr(&mut self) -> Result<SocketAddr, CodecError> {
@@ -277,24 +298,24 @@ impl<B: Buf> SocketAddrRead for B {
         match ver {
             4 => {
                 read_buf!(self, 6, {
-                    let ip = Ipv4Addr::from_bits(self.get_u32());
+                    let ip = Ipv4Addr::from_bits(!self.get_u32());
                     let port = self.get_u16();
                     Ok(SocketAddr::V4(SocketAddrV4::new(ip, port)))
                 })
             }
             6 => {
                 // TODO: to be determined
-                read_buf!(self, 28, {
-                    let family = self.get_u16();
-                    if family != 0x17 {
-                        return Err(CodecError::InvalidIPV6Family(family));
-                    }
-                    let port = self.get_u16();
-                    let flow_info = self.get_u32();
+                read_buf!(self, 10, {
+                    // let family = self.get_u16();
+                    // if family != 0x17 {
+                    //     return Err(CodecError::InvalidIPV6Family(family));
+                    // }
                     let ip = Ipv6Addr::from_bits(self.get_u128());
-                    let scope_ip = self.get_u32();
+                    let port = self.get_u16();
+                    // let flow_info = self.get_u32();
+                    // let scope_ip = self.get_u32();
                     Ok(SocketAddr::V6(SocketAddrV6::new(
-                        ip, port, flow_info, scope_ip,
+                        ip, port, 0, 0//, flow_info, scope_ip,
                     )))
                 })
             }
@@ -308,16 +329,16 @@ impl<B: BufMut> SocketAddrWrite for B {
         match addr {
             SocketAddr::V4(v4) => {
                 self.put_u8(4);
-                self.put_slice(&v4.ip().octets());
+                self.put_slice(&(!v4.ip()).octets());
                 self.put_u16(v4.port());
             }
             SocketAddr::V6(v6) => {
                 self.put_u8(6);
-                self.put_u16(0x17);
-                self.put_u16(v6.port());
-                self.put_u32(v6.flowinfo());
+                // self.put_u16(0x17);
                 self.put_slice(&v6.ip().octets());
-                self.put_u32(v6.scope_id());
+                self.put_u16(v6.port());
+                // self.put_u32(v6.flowinfo());
+                // self.put_u32(v6.scope_id());
             }
         }
     }

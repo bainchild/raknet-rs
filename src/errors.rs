@@ -4,8 +4,8 @@ pub(crate) enum CodecError {
     IO(#[from] std::io::Error),
     #[error("invalid ip version {0}")]
     InvalidIPVer(u8),
-    #[error("expect IPv6 family 0x17, got {0}")]
-    InvalidIPV6Family(u16),
+    // #[error("expect IPv6 family 0x17, got {0}")]
+    // InvalidIPV6Family(u16),
     #[error("invalid packet length when decode {0}")]
     InvalidPacketLength(&'static str),
     #[error("invalid record type {0}")]

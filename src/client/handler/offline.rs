@@ -99,6 +99,8 @@ where
                             server_address: *this.server_addr,
                             mtu,
                             client_guid: this.config.client_guid,
+                            client_version: 0,
+                            client_capabilities: 0
                         },
                         _ => continue,
                     };
