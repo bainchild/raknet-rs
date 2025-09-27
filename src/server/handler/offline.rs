@@ -17,7 +17,7 @@ use crate::{HashMap, Peer, Role};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Config {
-    pub(crate) sever_guid: u64,
+    pub(crate) server_guid: u64,
     pub(crate) advertisement: Bytes,
     pub(crate) min_mtu: u16,
     pub(crate) max_mtu: u16,
@@ -81,7 +81,7 @@ where
                 NonZeroUsize::new(config.max_pending).expect("max_pending > 0"),
             ),
             role: Role::Server {
-                guid: config.sever_guid,
+                guid: config.server_guid,
             },
             config,
             connected: HashMap::default(),
@@ -100,21 +100,21 @@ where
         unconnected::Packet::IncompatibleProtocol {
             server_protocol: *config.support_version.last().unwrap(),
             magic: (),
-            server_guid: config.sever_guid,
+            server_guid: config.server_guid,
         }
     }
 
     fn make_already_connected(config: &Config) -> unconnected::Packet {
         unconnected::Packet::AlreadyConnected {
             magic: (),
-            server_guid: config.sever_guid,
+            server_guid: config.server_guid,
         }
     }
 
     fn make_connection_request_failed(config: &Config) -> unconnected::Packet {
         unconnected::Packet::ConnectionRequestFailed {
             magic: (),
-            server_guid: config.sever_guid,
+            server_guid: config.server_guid,
         }
     }
 }
@@ -192,7 +192,7 @@ where
                 unconnected::Packet::UnconnectedPing { send_timestamp, .. } => {
                     unconnected::Packet::UnconnectedPong {
                         send_timestamp,
-                        server_guid: this.config.sever_guid,
+                        server_guid: this.config.server_guid,
                         magic: (),
                         data: this.config.advertisement.clone(),
                     }
@@ -233,7 +233,7 @@ where
                     let final_mtu = mtu.clamp(this.config.min_mtu, this.config.max_mtu);
                     unconnected::Packet::OpenConnectionReply1 {
                         magic: (),
-                        server_guid: this.config.sever_guid,
+                        server_guid: this.config.server_guid,
                         use_encryption: false, // must set to false first
                         mtu: final_mtu,
                     }
@@ -271,7 +271,7 @@ where
                     this.connected.insert(addr, Peer { addr, mtu, guid });
                     unconnected::Packet::OpenConnectionReply2 {
                         magic: (),
-                        server_guid: this.config.sever_guid,
+                        server_guid: this.config.server_guid,
                         client_address: addr,
                         mtu,
                         encryption_enabled: false, // must set to false
@@ -392,7 +392,7 @@ mod test {
         let handler = OfflineHandler::new(
             test_case,
             Config {
-                sever_guid: 1919810,
+                server_guid: 1919810,
                 advertisement: Bytes::from_static(b"hello"),
                 min_mtu: 800,
                 max_mtu: 1400,
@@ -451,7 +451,7 @@ mod test {
         let handler = OfflineHandler::new(
             test_case,
             Config {
-                sever_guid: 1919810,
+                server_guid: 1919810,
                 advertisement: Bytes::from_static(b"hello"),
                 min_mtu: 800,
                 max_mtu: 1400,
@@ -631,7 +631,7 @@ mod test {
             let handler = OfflineHandler::new(
                 case,
                 Config {
-                    sever_guid: 1919810,
+                    server_guid: 1919810,
                     advertisement: Bytes::from_static(b"hello"),
                     min_mtu: 800,
                     max_mtu: 1400,

@@ -32,7 +32,7 @@ mod tokio;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Config {
     /// The server guid, used to identify the server, initialized by random
-    sever_guid: u64,
+    server_guid: u64,
     /// The advertisement, sent to the client when the client pings the server
     advertisement: String,
     /// The minimum mtu, the default value is 510
@@ -66,7 +66,7 @@ impl Default for Config {
 impl Config {
     pub fn new() -> Self {
         Self {
-            sever_guid: rand::random(),
+            server_guid: rand::random(),
             advertisement: String::new(),
             min_mtu: 510,
             max_mtu: 1500,
@@ -80,8 +80,8 @@ impl Config {
 
     /// Set the server guid
     /// The default value is random
-    pub fn sever_guid(mut self, guid: u64) -> Self {
-        self.sever_guid = guid;
+    pub fn server_guid(mut self, guid: u64) -> Self {
+        self.server_guid = guid;
         self
     }
 
@@ -150,7 +150,7 @@ impl Config {
 
     fn offline_config(&self) -> offline::Config {
         offline::Config {
-            sever_guid: self.sever_guid,
+            server_guid: self.server_guid,
             advertisement: Bytes::from_iter(self.advertisement.bytes()),
             min_mtu: self.min_mtu,
             max_mtu: self.max_mtu,
@@ -169,7 +169,7 @@ impl Config {
 
     fn server_role(&self) -> Role {
         Role::Server {
-            guid: self.sever_guid,
+            guid: self.server_guid,
         }
     }
 }
