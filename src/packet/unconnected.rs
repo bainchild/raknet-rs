@@ -199,7 +199,9 @@ impl Packet {
             } => {
                 buf.put_magic();
                 buf.put_u8(protocol_version);
-                buf.put_u16(mtu);
+                for _ in 1..mtu {
+                    buf.put_u8(0);
+                }
             }
             Packet::OpenConnectionReply1 {
                 magic: _magic,

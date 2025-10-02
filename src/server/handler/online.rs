@@ -8,7 +8,7 @@ use log::{debug, trace};
 use pin_project_lite::pin_project;
 
 use crate::link::SharedLink;
-use crate::packet::connected::FrameBody;
+use crate::packet::connected::{Flags, Fragment, Ordered, FrameBody};
 use crate::packet::unconnected;
 use crate::utils::timestamp;
 use crate::{Peer, Role};
@@ -54,7 +54,7 @@ impl<F> Stream for OnlineHandler<F>
 where
     F: Stream<Item = FrameBody>,
 {
-    type Item = Bytes;
+    type Item = Bytes;//(Bytes, Option<Flags>, Option<Ordered>, Option<Fragment>);
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut this = self.project();
@@ -140,7 +140,10 @@ where
                                 server_timestamp: timestamp(),
                             });
                         }
-                        FrameBody::User(data) => return Poll::Ready(Some(data)),
+                        FrameBody::User(data) => {
+                            // let frame = this.frame.as_ref();
+                            return Poll::Ready(Some(data)); //(data,frame.flags.clone(),frame.ordered.clone(),frame.fragment.clone())))
+                        },
                         _ => {
                             debug!("[{}] ignore packet {body:?} on Connected", this.role);
                         }
