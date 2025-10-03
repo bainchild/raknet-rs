@@ -21,6 +21,8 @@ pub(crate) struct Config {
     pub(crate) advertisement: Bytes,
     pub(crate) min_mtu: u16,
     pub(crate) max_mtu: u16,
+    pub(crate) check_password: bool,
+    pub(crate) allowed_passwords: Vec<[u8;6]>,
     // Supported raknet versions, sorted
     pub(crate) support_version: Vec<u8>,
     pub(crate) max_pending: usize,
@@ -113,6 +115,13 @@ where
 
     fn make_connection_request_failed(config: &Config) -> unconnected::Packet {
         unconnected::Packet::ConnectionRequestFailed {
+            magic: (),
+            server_guid: config.server_guid,
+        }
+    }
+
+    fn make_invalid_password(config: &Config) -> unconnected::Packet {
+        unconnected::Packet::InvalidPassword {
             magic: (),
             server_guid: config.server_guid,
         }

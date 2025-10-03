@@ -41,6 +41,10 @@ pub struct Config {
     max_mtu: u16,
     /// Supported raknet versions, sorted
     support_version: Vec<u8>,
+    /// Allowed passwords
+    allowed_passwords: Vec<[u8; 6]>,
+    /// Check password?
+    check_password: bool,
     /// The maximum pending(aka. half-opened connections)
     max_pending: usize,
     /// Limit the max size of a parted frames set, 0 means no limit
@@ -71,11 +75,20 @@ impl Config {
             min_mtu: 510,
             max_mtu: 1500,
             support_version: vec![9, 11, 13],
+            allowed_passwords: vec![],
+            check_password: false,
             max_pending: 1024,
             max_parted_size: 256,
             max_parted_count: 256,
             max_channels: 1,
         }
+    }
+
+    /// Set password settings
+    pub fn passwords(mut self, passwds: Vec<[u8; 6]>, check: bool) -> Self {
+        self.allowed_passwords = passwds;
+        self.check_password = check;
+        self
     }
 
     /// Set the server guid
@@ -156,6 +169,8 @@ impl Config {
             max_mtu: self.max_mtu,
             support_version: self.support_version.clone(),
             max_pending: self.max_pending,
+            allowed_passwords: vec![],
+            check_password: false
         }
     }
 
@@ -221,6 +236,8 @@ impl<T: AsyncSocket> Stream for Incoming<T> {
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut this = self.project();
 
+        let passwords = this.config.allowed_passwords.clone();
+        let check_password = this.config.check_password;
         let role = this.config.server_role();
         for ev in this.close_events.try_iter() {
             this.router
@@ -263,7 +280,7 @@ impl<T: AsyncSocket> Stream for Incoming<T> {
                     move |err| error!("[{role}] decode error: {err} from {peer}"),
                 )
                 .manage_incoming_state()
-                .handle_online(role, peer, Arc::clone(&link))
+                .handle_online(role, peer, Arc::clone(&link), passwords, check_password)
                 .enter_on_item(move || {
                     Span::root("online", SpanContext::random()).with_properties(|| {
                         [

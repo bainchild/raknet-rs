@@ -52,6 +52,10 @@ pub(crate) enum Packet {
         magic: (),
         server_guid: u64,
     },
+    InvalidPassword {
+        magic: (),
+        server_guid: u64,
+    },
     AlreadyConnected {
         magic: (),
         server_guid: u64,
@@ -77,6 +81,7 @@ impl Packet {
             Packet::OpenConnectionRequest2 { .. } => PackType::OpenConnectionRequest2,
             Packet::OpenConnectionReply2 { .. } => PackType::OpenConnectionReply2,
             Packet::IncompatibleProtocol { .. } => PackType::IncompatibleProtocolVersion,
+            Packet::InvalidPassword { .. } => PackType::InvalidPassword,
             Packet::AlreadyConnected { .. } => PackType::AlreadyConnected,
             Packet::ConnectionRequestFailed { .. } => PackType::ConnectionRequestFailed,
         }
@@ -155,6 +160,13 @@ impl Packet {
 
     pub(super) fn read_already_connected(buf: &mut BytesMut) -> Result<Self, CodecError> {
         Ok(Packet::AlreadyConnected {
+            magic: buf.get_checked_magic()?, // 16
+            server_guid: buf.get_u64(),      // 8
+        })
+    }
+
+    pub(super) fn read_invalid_password(buf: &mut BytesMut) -> Result<Self, CodecError> {
+        Ok(Packet::InvalidPassword {
             magic: buf.get_checked_magic()?, // 16
             server_guid: buf.get_u64(),      // 8
         })
@@ -250,6 +262,13 @@ impl Packet {
                 server_guid,
             } => {
                 buf.put_u8(server_protocol);
+                buf.put_magic();
+                buf.put_u64(server_guid);
+            }
+            Packet::InvalidPassword {
+                magic: _magic,
+                server_guid,
+            } => {
                 buf.put_magic();
                 buf.put_u64(server_guid);
             }

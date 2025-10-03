@@ -297,7 +297,7 @@ pub(crate) enum FrameBody {
         client_guid: u64,
         request_timestamp: i64,
         use_encryption: bool,
-        password: [u8; 4],
+        password: [u8; 6],
     },
     ConnectionRequestAccepted {
         client_address: std::net::SocketAddr,
@@ -373,15 +373,19 @@ impl FrameBody {
                     server_timestamp: buf.get_i64(), // 8
                 }
             })),
-            PackType::ConnectionRequest => Ok(read_buf!(buf, 22, {
+            PackType::ConnectionRequest => Ok({
                 buf.advance(1); // 1
                 Self::ConnectionRequest {
                     client_guid: buf.get_u64(),        // 8
                     request_timestamp: buf.get_i64(),  // 8
                     use_encryption: buf.get_u8() != 0, // 1
-                    password: buf.copy_to_bytes(4).chunk().try_into().unwrap(),
+                    password: {
+                        let mut pass = buf.chunk().to_vec();
+                        pass.resize(6,0u8);
+                        pass.as_slice().try_into().unwrap()
+                    }
                 }
-            })),
+            }),
             PackType::ConnectionRequestAccepted => Ok(Self::ConnectionRequestAccepted {
                 client_address: {
                     buf.advance(1);
@@ -433,10 +437,9 @@ impl FrameBody {
                 buf.put_u64(client_guid);
                 buf.put_i64(request_timestamp);
                 buf.put_u8(u8::from(use_encryption));
-                buf.put_u8(password[0]);
-                buf.put_u8(password[1]);
-                buf.put_u8(password[2]);
-                buf.put_u8(password[3]);
+                let mut a = password.iter().rev().skip_while(|x| **x==0u8).map(|x| *x).collect::<Vec<u8>>();
+                a.reverse();
+                buf.put(a.as_slice());
             }
             FrameBody::ConnectionRequestAccepted {
                 client_address,

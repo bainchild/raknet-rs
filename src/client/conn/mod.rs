@@ -42,6 +42,8 @@ pub struct Config {
     max_parted_count: usize,
     /// Maximum ordered channel, the value should be less than 256
     max_channels: usize,
+    /// Password to use. Defaults to "test"
+    password: [u8; 6]
 }
 
 impl Default for Config {
@@ -59,6 +61,7 @@ impl Config {
             max_parted_size: 256,
             max_parted_count: 256,
             max_channels: 1,
+            password: [0x74,0x65,0x73,0x74,0x00,0x00]
         }
     }
 
@@ -80,6 +83,12 @@ impl Config {
         self
     }
 
+    /// Set the password
+    pub fn password(mut self, password: [u8; 6]) -> Self {
+        self.password = password;
+        self
+    }
+    
     /// Set the maximum parted size
     /// The default value is 256
     /// The maximum number of inflight parted frames is `max_parted_size`*`max_parted_count`nt
@@ -188,7 +197,7 @@ pub(crate) async fn connect_to<H>(
             move |err| error!("[{role}] decode error: {err} from {peer}"),
         )
         .manage_incoming_state()
-        .handle_online(addr, config.client_guid, Arc::clone(&link));
+        .handle_online(addr, config.client_guid, Arc::clone(&link), config.password);
 
     // make all internal packets flushed
     SinkExt::<Message>::flush(&mut dst).await?;

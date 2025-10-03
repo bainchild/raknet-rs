@@ -18,6 +18,7 @@ pub(crate) trait HandleOnline: Sized {
         addr: SocketAddr,
         client_guid: u64,
         link: SharedLink,
+        password: [u8;6]
     ) -> OnlineHandler<Self>;
 }
 
@@ -30,12 +31,13 @@ where
         addr: SocketAddr,
         client_guid: u64,
         link: SharedLink,
+        password: [u8;6]
     ) -> OnlineHandler<Self> {
         link.send_frame_body(FrameBody::ConnectionRequest {
             client_guid,
             request_timestamp: timestamp(),
             use_encryption: false,
-            password: [0x74,0x65,0x73,0x74] // "test", used by the roblox client for some reason (might be my setup)
+            password
         });
         OnlineHandler {
             frame: self,
