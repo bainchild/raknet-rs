@@ -13,10 +13,18 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - uses: https://git.rbx.mx/bainchild/install-ca-certificates@v1
       - uses: actions/checkout@v3
+
+      - name: Install rustup
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+
       - uses: taiki-e/install-action@cargo-binstall
 
       - name: Install Dependencies
+        shell: bash
         run: |
           rustup component add rustfmt llvm-tools-preview clippy
           cargo binstall -y --no-symlinks cargo-llvm-cov cargo-nextest cargo-sort cargo-audit cargo-machete
@@ -34,6 +42,7 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Run quick check
+        shell: bash
         run: |
           cargo audit
           cargo fmt --all -- --check
@@ -41,29 +50,36 @@ jobs:
           cargo machete
 
       - name: Sccache clear
+        shell: bash
         run: sccache --zero-stats > /dev/null
       
       - name: Build in release mode
+        shell: bash
         run: cargo build --release --all-features --features fastrace/enable
 
       - name: Test with codecov
+        shell: bash
         run: cargo llvm-cov --no-report nextest --all-features --features fastrace/enable
 
       - name: Test example with codecov
+        shell: bash
         run: |
           cargo llvm-cov --no-report run --example proxy
           cargo llvm-cov --no-report run --example controller
           cargo llvm-cov --no-report run --example tracing --features fastrace/enable
 
       - name: Test bench with codecov
+        shell: bash
         run: |
           cargo llvm-cov --no-report --bench micro --all-features
 
       - name: Generate codecov report
+        shell: bash
         run: |
           cargo llvm-cov report --lcov --output-path lcov.info
 
       - name: Sccache state
+        shell: bash
         run: sccache --show-stats
 
       - uses: codecov/codecov-action@v4

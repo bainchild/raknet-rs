@@ -10,6 +10,7 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     steps:
+      - uses: https://git.rbx.mx/bainchild/install-ca-certificates@v1
       - uses: actions/checkout@v3
 
       - name: Generate Release Notes
