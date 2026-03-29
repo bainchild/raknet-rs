@@ -120,12 +120,12 @@ where
         }
     }
 
-    fn make_invalid_password(config: &Config) -> unconnected::Packet {
-        unconnected::Packet::InvalidPassword {
-            magic: (),
-            server_guid: config.server_guid,
-        }
-    }
+    // fn make_invalid_password(config: &Config) -> unconnected::Packet {
+    //     unconnected::Packet::InvalidPassword {
+    //         magic: (),
+    //         server_guid: config.server_guid,
+    //     }
+    // }
 }
 
 impl<F> Stream for OfflineHandler<F>

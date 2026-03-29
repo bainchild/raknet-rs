@@ -3,7 +3,6 @@
 #![feature(impl_trait_in_assoc_type)]
 #![feature(coroutines, proc_macro_hygiene, stmt_expr_attributes)]
 #![feature(binary_heap_into_iter_sorted)]
-#![feature(let_chains)]
 #![feature(context_ext)]
 #![feature(local_waker)]
 

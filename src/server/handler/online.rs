@@ -14,21 +14,21 @@ use crate::utils::timestamp;
 use crate::{Peer, Role};
 
 pub(crate) trait HandleOnline: Sized {
-    fn handle_online(self, role: Role, peer: Peer, link: SharedLink, password: Vec<[u8; 6]>, check_password: bool) -> OnlineHandler<Self>;
+    fn handle_online(self, role: Role, peer: Peer, link: SharedLink, passwords: Vec<[u8; 6]>, check_password: bool) -> OnlineHandler<Self>;
 }
 
 impl<F> HandleOnline for F
 where
     F: Stream<Item = FrameBody>,
 {
-    fn handle_online(self, role: Role, peer: Peer, link: SharedLink, password: Vec<[u8; 6]>, check_password: bool) -> OnlineHandler<Self> {
+    fn handle_online(self, role: Role, peer: Peer, link: SharedLink, passwords: Vec<[u8; 6]>, check_password: bool) -> OnlineHandler<Self> {
         OnlineHandler {
             frame: self,
             role,
             peer,
             state: HandshakeState::WaitConnRequest,
             link,
-            password,
+            passwords,
             check_password
         }
     }
@@ -42,7 +42,7 @@ pin_project! {
         peer: Peer,
         state: HandshakeState,
         link: SharedLink,
-        password: Vec<[u8; 6]>,
+        passwords: Vec<[u8; 6]>,
         check_password: bool,
     }
 }
@@ -76,8 +76,12 @@ where
                     } = body
                     {
                         trace!("received password {:X?} ({:?})",password,use_encryption);
-                        if *this.check_password {
-                            todo!("password checking")
+                        if *this.check_password && !this.passwords.contains(&password) { // the zero padding on read and zero stripping on write make correct passwords equivalent. (in this impl, trailing zeros aren't allowed)
+                            this.link.send_unconnected(unconnected::Packet::InvalidPassword {
+                                magic: (),
+                                server_guid: this.role.guid()
+                            });
+                            continue;
                         }
                         if use_encryption {
                             this.link.send_unconnected(
